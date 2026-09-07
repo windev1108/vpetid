@@ -1,20 +1,17 @@
-# ══════════════════════════════════════════════════════════════════════
-# VPetId API — Production Dockerfile
-# Monorepo: pnpm workspace + NestJS
-# ══════════════════════════════════════════════════════════════════════
-
+# ============================================
+# Base
+# ============================================
 FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+RUN corepack enable \
+    && corepack prepare pnpm@10.33.0 --activate
 
 
-# ──────────────────────────────────────────────────────────────────────
+# ============================================
 # Dependencies
-# ──────────────────────────────────────────────────────────────────────
-
+# ============================================
 FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -24,10 +21,9 @@ COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Build
-# ──────────────────────────────────────────────────────────────────────
-
+# ============================================
+# Builder
+# ============================================
 FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -38,36 +34,46 @@ COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
 
-# Generate Prisma client
+# Generate Prisma Client
 RUN pnpm prisma generate
 
 # Build NestJS
 RUN pnpm build
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Production
-# ──────────────────────────────────────────────────────────────────────
+# ============================================
+# Production dependencies
+# ============================================
+FROM base AS prod-deps
 
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json apps/api/package.json
+
+RUN pnpm install --frozen-lockfile --prod
+
+
+# ============================================
+# Runner
+# ============================================
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Required runtime libraries
 RUN apk add --no-cache dumb-init
 
-# pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
-
-# Copy application
+# Copy built application
 COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/node_modules ./node_modules
-COPY --from=builder /app/apps/api/package.json ./package.json
 
-# Prisma files/client
+# Copy Prisma schema
 COPY --from=builder /app/apps/api/prisma ./prisma
+
+# Copy production node_modules
+COPY --from=prod-deps /app/apps/api/node_modules ./node_modules
+
+# Copy package metadata
+COPY --from=builder /app/apps/api/package.json ./package.json
 
 EXPOSE 3000
 
@@ -75,4 +81,4 @@ USER node
 
 ENTRYPOINT ["dumb-init", "--"]
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
