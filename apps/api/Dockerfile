@@ -52,6 +52,9 @@ COPY --from=builder /app/apps/api/dist ./dist
 # API node_modules
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 
+# Prisma generated client
+COPY --from=builder /app/apps/api/node_modules/.prisma ./node_modules/.prisma
+
 # Prisma
 COPY --from=builder /app/apps/api/prisma ./prisma
 
