@@ -1,0 +1,72 @@
+services:
+  api:
+    container_name: vpetid-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - vpetid-network
+
+  postgres:
+    container_name: vpetid-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - vpetid-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - vpetid-network
+
+  redis:
+    container_name: vpetid-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - vpetid-redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - vpetid-network
+
+volumes:
+  vpetid-postgres-data:
+    name: vpetid-postgres-data
+
+  vpetid-redis-data:
+    name: vpetid-redis-data
+
+networks:
+  vpetid-network:
+    name: vpetid-network
+    driver: bridge

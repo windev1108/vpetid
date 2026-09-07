@@ -1,0 +1,27 @@
+{
+  "name": "vpetid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VPetId - Digital Identity and Safety Platform for Pets",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "clean": "turbo clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.0",
+    "turbo": "^2.5.0"
+  },
+  "dependencies": {
+    "@heroui/react": "^3.2.4",
+    "@heroui/styles": "^3.2.4",
+    "motion": "^13.1.0",
+    "next-intl": "^4.13.7"
+  }
+}

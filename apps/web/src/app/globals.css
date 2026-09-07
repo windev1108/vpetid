@@ -1,0 +1,215 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+/* ============================================================
+   VPetId Design System — mapped từ Material3 sang HeroUI v3
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Background */
+  --background: #faf8ff;                     /* background */
+  --color-background-secondary: #f2f3ff;     /* surface-container-low */
+  --color-background-tertiary: #eaedff;      /* surface-container */
+  --color-background-inverse: #283044;       /* inverse-surface */
+
+  /* Foreground */
+  --foreground: #0f172a;                     /* text-charcoal */
+  --muted: #64748b;                          /* text-muted */
+  --segment: #3c4a42;                        /* on-surface-variant */
+  --overlay: #faf8ff;                        /* on-background */
+  --link: #006c49;                           /* primary */
+
+  /* Surface */
+  --surface: #ffffff;                        /* surface-container-lowest */
+  --surface-secondary: #f2f3ff;              /* surface-container-low */
+  --surface-tertiary: #eaedff;               /* surface-container */
+
+  /* Accent (brand / CTA chính) */
+  --accent: #10b981;                         /* primary-container */
+  --accent-foreground: #ffffff;              /* on-primary */
+  --color-accent-hover: #006c49;             /* primary */
+  --color-accent-soft-hover: #82f5c1;        /* secondary-container */
+  --color-accent-soft-foreground: #00422b;   /* on-primary-container */
+
+  /* Default (neutral) */
+  --default: #dae2fd;                        /* surface-variant */
+  --default-foreground: #3c4a42;             /* on-surface-variant */
+  --color-default-hover: #d2d9f4;            /* surface-dim */
+
+  /* Success */
+  --success: #1b6b4f;                        /* tertiary */
+  --success-foreground: #ffffff;             /* on-tertiary */
+  --color-success-hover: #00422e;            /* on-tertiary-container */
+  --color-success-soft-hover: #67b191;       /* tertiary-container */
+  --color-success-soft-foreground: #00422e;  /* on-tertiary-container */
+
+  /* Danger */
+  --danger: #ba1a1a;                         /* error */
+  --danger-foreground: #ffffff;              /* on-error */
+  --color-danger-hover: #93000a;             /* on-error-container */
+  --color-danger-soft-hover: #ffdad6;        /* error-container */
+  --color-danger-soft-foreground: #93000a;   /* on-error-container */
+
+  /* Form field */
+  --field-bg: #ffffff;
+  --color-field-hover: #f2f3ff;
+  --color-field-focus: #10b981;
+  --field-placeholder: #64748b;
+  --field-foreground: #0f172a;
+
+  /* Separator / border */
+  --separator: #e2e8f0;                      /* border-light */
+  --color-separator-secondary: #bbcabf;      /* outline-variant */
+  --color-separator-tertiary: #6c7a71;       /* outline */
+  --border: #e2e8f0;
+
+  --backdrop: rgb(15 23 42 / 0.4);
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #131b2e;                     /* on-background (đảo vai trò) */
+  --color-background-secondary: #1a2338;
+  --color-background-tertiary: #212b42;
+  --color-background-inverse: #faf8ff;
+
+  --foreground: #eef0ff;                     /* inverse-on-surface */
+  --muted: #9aa5c0;
+  --segment: #bbcabf;
+  --overlay: #eef0ff;
+  --link: #6ffbbe;                           /* primary-fixed */
+
+  --surface: #283044;                        /* inverse-surface */
+  --surface-secondary: #1a2338;
+  --surface-tertiary: #212b42;
+
+  --accent: #4edea3;                         /* primary-fixed-dim */
+  --accent-foreground: #002113;              /* on-primary-fixed */
+  --color-accent-hover: #6ffbbe;             /* primary-fixed */
+  --color-accent-soft-hover: #005236;        /* on-primary-fixed-variant */
+  --color-accent-soft-foreground: #a6f2cf;   /* tertiary-fixed */
+
+  --default: #3c4a42;
+  --default-foreground: #dae2fd;
+  --color-default-hover: #4b5a52;
+
+  --success: #8bd6b4;                        /* tertiary-fixed-dim */
+  --success-foreground: #00422e;
+  --color-success-hover: #a6f2cf;
+  --color-success-soft-hover: #00513a;
+  --color-success-soft-foreground: #a6f2cf;
+
+  --danger: #ffb4ab;
+  --danger-foreground: #690005;
+  --color-danger-hover: #ffdad6;
+  --color-danger-soft-hover: #93000a;
+  --color-danger-soft-foreground: #ffdad6;
+
+  --field-bg: #1a2338;
+  --color-field-hover: #212b42;
+  --color-field-focus: #4edea3;
+  --field-placeholder: #9aa5c0;
+  --field-foreground: #eef0ff;
+
+  --separator: #3c4a42;
+  --color-separator-secondary: #4b5a52;
+  --color-separator-tertiary: #6c7a71;
+  --border: #3c4a42;
+
+  --backdrop: rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1.5rem;
+
+  /* ============================================================
+     Color roles — map biến :root sang namespace --color-* để
+     Tailwind sinh utility (bg-accent, text-foreground, border-separator...)
+     ============================================================ */
+  --color-background: var(--background);
+  --color-background-secondary: var(--color-background-secondary);
+  --color-background-tertiary: var(--color-background-tertiary);
+  --color-background-inverse: var(--color-background-inverse);
+
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-segment: var(--segment);
+  --color-overlay: var(--overlay);
+  --color-link: var(--link);
+
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-tertiary: var(--surface-tertiary);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-default: var(--default);
+  --color-default-foreground: var(--default-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+
+  --color-separator: var(--separator);
+  --color-border: var(--border);
+
+  /* ============================================================
+     Typography scale — kiểu Material3 (headline / body / label)
+     text-* set font-size + line-height; font-* (weight) dùng chung
+     namespace --font-weight-* của Tailwind
+     ============================================================ */
+  --text-headline-xl: 2.5rem;
+  --text-headline-xl--line-height: 3rem;
+  --font-weight-headline-xl: 800;
+
+  --text-headline-lg: 2rem;
+  --text-headline-lg--line-height: 2.5rem;
+  --font-weight-headline-lg: 700;
+
+  --text-headline-lg-mobile: 1.75rem;
+  --text-headline-lg-mobile--line-height: 2.25rem;
+  --font-weight-headline-lg-mobile: 700;
+
+  --text-headline-md: 1.375rem;
+  --text-headline-md--line-height: 1.75rem;
+  --font-weight-headline-md: 600;
+
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.75rem;
+  --font-weight-body-lg: 400;
+
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.5rem;
+  --font-weight-body-md: 400;
+
+  --text-label-lg: 1rem;
+  --text-label-lg--line-height: 1.5rem;
+  --font-weight-label-lg: 600;
+
+  --text-label-md: 0.875rem;
+  --text-label-md--line-height: 1.25rem;
+  --font-weight-label-md: 600;
+
+  --text-label-sm: 0.75rem;
+  --text-label-sm--line-height: 1rem;
+  --font-weight-label-sm: 500;
+
+  /* ============================================================
+     Spacing tokens dùng riêng (mb-stack-sm, pt-stack-sm, px-margin-mobile...)
+     ============================================================ */
+  --spacing-stack-sm: 0.75rem;
+  --spacing-stack-md: 1.5rem;
+  --spacing-margin-mobile: 1rem;
+  --spacing-margin-desktop: 2rem;
+}

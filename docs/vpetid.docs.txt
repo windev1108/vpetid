@@ -1,0 +1,335 @@
+VPetId — Project Documentation
+
+Digital Identity & Safety Platform for Pets
+
+Version: 0.1.0
+
+Status: Active development / MVP architecture
+
+1. Product Overview
+
+VPetId is a pet digital identity and safety platform designed to help pet owners manage pet identity, GPS tracking, devices, safety zones, lost-pet workflows, documents, notifications, and trusted contacts.
+
+The product direction prioritizes pet safety and location visibility. The key product question for the user dashboard is: “Where is my pet, and is my pet safe?”
+
+2. Core Product Modules
+
+Pet digital identity
+
+Pet profiles and ownership/membership
+
+GPS device management
+
+Pet location history
+
+Live location tracking
+
+Geofences / safe zones
+
+Lost-pet reports
+
+Finder contacts
+
+Pet documents
+
+Microchip / identity information
+
+Notifications
+
+User authentication and sessions
+
+Partner management
+
+Audit logs
+
+3. Authentication
+
+Authentication is being designed as a production-oriented flow with:
+
+Email/password registration and login
+
+Argon2id password hashing
+
+JWT access tokens
+
+Refresh sessions with hashed refresh tokens
+
+Google OAuth / OpenID Connect
+
+JWT authentication guard and strategy
+
+Current-user decorator for protected APIs
+
+Google OAuth flow
+
+FE → GET /auth/google
+   → VPetId API redirects to Google
+   → Google callback: /auth/google/callback
+   → verify OAuth state
+   → exchange authorization code
+   → verify Google ID token
+   → find/create/link VPetId User + Account
+   → create VPetId session
+   → redirect back to FE
+
+Google's provider identifier should use the Google ID token `sub` as providerAccountId, rather than using email as the provider identifier.
+
+4. Backend Architecture
+
+Backend: NestJS + TypeScript.
+
+NestJS 10
+
+Prisma 7.9.1
+
+PostgreSQL / Supabase
+
+Argon2 0.45.1
+
+class-validator / class-transformer
+
+JWT + Passport
+
+Google Auth Library
+
+Swagger for development API documentation
+
+Suggested auth structure
+
+src/modules/auth/
+├── auth.controller.ts
+├── auth.service.ts
+├── google.service.ts
+├── decorators/
+│   └── current-user.decorator.ts
+├── guards/
+│   └── jwt-auth.guard.ts
+├── strategies/
+│   └── jwt.strategy.ts
+├── services/
+│   ├── password.service.ts
+│   ├── session.service.ts
+│   └── token.service.ts
+└── dto/
+    ├── register.dto.ts
+    └── login.dto.ts
+
+5. Database / Prisma
+
+The current Prisma model contains the core entities required by the platform.
+
+User / accounts / refresh sessions
+
+Pets / pet memberships
+
+GPS devices / device events
+
+Pet locations
+
+Geofences / geofence events
+
+Lost reports / finder contacts
+
+Pet identities / microchips
+
+Pet documents
+
+Notifications
+
+Partners
+
+Audit logs
+
+Biometric credentials
+
+Verification tokens
+
+Important relationships
+
+User
+ ├── Accounts
+ ├── RefreshSessions
+ ├── PetMemberships
+ ├── GPSDevices
+ ├── Notifications
+ └── AuditLogs
+
+Pet
+ ├── PetMemberships
+ ├── GPSDevices
+ ├── PetLocations
+ ├── Geofences
+ ├── LostReports
+ ├── Documents
+ ├── Identity
+ └── Microchip
+
+6. GPS Tracker — V1 Direction
+
+Because VPetId does not yet have a large user/community network, the first GPS tracker direction is a self-contained cellular + GNSS tracker. The device should not depend on nearby VPetId users or third-party phones to obtain a location.
+
+Prototype hardware
+
+ESP32-C3 Super Mini — MCU / device controller
+
+SIMCom A7670C variant with GNSS support — 4G Cat.1 + GNSS
+
+LTE antenna
+
+GNSS antenna
+
+Nano SIM with mobile data
+
+Li-ion/LiPo battery for prototype testing
+
+The preferred A7670C direction discussed for the prototype is the GNSS-capable A7670C-MASL / FS-HCore-A7670CG family. A7670C variants without GNSS are not suitable for the GPS tracker requirement.
+
+Device architecture
+
+ESP32-C3
+   │ UART
+   ▼
+A7670C
+ ├── GNSS → latitude / longitude
+ └── 4G  → VPetId API
+
+Device → VPetId API → PostgreSQL → FE map
+
+Initial tracker milestone
+
+First hardware milestone: power the prototype, obtain GNSS coordinates, and send latitude/longitude to the VPetId NestJS API over cellular data. Battery optimization and custom PCB miniaturization follow after this end-to-end path is proven.
+
+7. Location Data Model
+
+Example device payload:
+{
+  "deviceId": "VPET-000001",
+  "timestamp": "...",
+  "latitude": 15.9874756,
+  "longitude": 108.2556595,
+  "accuracy": 8.5,
+  "speed": 2.1,
+  "battery": 87
+}
+
+The backend should validate the device identity and store location history in PetLocation, with device/pet/time indexes supporting live tracking and historical queries.
+
+8. User Dashboard
+
+The dashboard is designed as a user-facing pet safety product rather than an admin/SaaS dashboard.
+
+Pet overview cards
+
+Live location map as the primary visual feature
+
+Safety / geofence status
+
+GPS device and battery status
+
+Quick actions: Add Pet, Add GPS Device, Track Pet, Report Lost Pet
+
+Recent activity timeline
+
+Digital identity
+
+Notifications
+
+Important UI states
+
+Normal / Safe
+
+Live Tracking
+
+Device Offline
+
+Low Battery
+
+Lost Pet
+
+New User / No Pets
+
+9. Frontend
+
+The project uses a modern Next.js frontend ecosystem with HeroUI components and next-intl. The UI should remain reusable and responsive across desktop and mobile.
+
+Next.js
+
+React
+
+HeroUI
+
+HeroUI Styles
+
+Motion
+
+next-intl
+
+Mobile navigation direction
+
+Home / Pets / Location / Alerts / Profile
+
+10. API Direction
+
+POST /auth/register
+
+POST /auth/login
+
+POST /auth/refresh
+
+POST /auth/logout
+
+GET /auth/me
+
+GET /auth/google
+
+GET /auth/google/callback
+
+Protected endpoints should use JwtAuthGuard. Authorization for pet ownership/membership should remain separate from authentication.
+
+11. Security Principles
+
+Passwords are hashed with Argon2id.
+
+Refresh tokens should be stored as hashes in the database.
+
+Access tokens should be short-lived.
+
+Google OAuth state should be generated and verified to protect the OAuth callback.
+
+Google providerAccountId should use the provider's stable subject identifier.
+
+Do not expose passwordHash through API responses.
+
+JWT authentication and pet-level authorization should be separate concerns.
+
+12. Development Roadmap
+
+Phase 1 — Auth
+
+Email registration/login → JWT → refresh/logout → Google OAuth.
+
+Phase 2 — Pet Core
+
+Pet profile, ownership/membership, digital identity and documents.
+
+Phase 3 — GPS Prototype
+
+ESP32-C3 + GNSS/4G module → location API → database → map.
+
+Phase 4 — Safety
+
+Geofences, alerts, lost-pet workflow, device/battery status.
+
+Phase 5 — Hardware V1
+
+Custom PCB, power optimization, enclosure, production-oriented tracker.
+
+Phase 6 — Scale
+
+Real-time location, device management, monitoring, notifications and ecosystem integrations.
+
+13. Current Technical Principle
+
+The immediate objective is to prove the complete VPetId GPS path end-to-end: device obtains its own GNSS location → cellular network sends the location → NestJS API validates and stores it → frontend displays the pet on a map. The AirTag-style community tracking concept is not the dependency for the initial GPS tracker.
+
+VPetId — Project Documentation

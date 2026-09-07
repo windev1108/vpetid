@@ -1,0 +1,641 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String              @id @default(uuid()) @db.Uuid
+  email              String?             @unique
+  passwordHash       String?
+  firstName          String?
+  lastName           String?
+  avatarUrl          String?
+  status             UserStatus          @default(ACTIVE)
+  emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+  role               UserRole            @default(USER)
+  phoneNumber        String?
+  whatAppsNumber     String?
+  zaloNumber         String?
+  accounts           Account[]
+  auditLogs          AuditLog[]          @relation("AuditActor")
+  finderContacts     FinderContact[]
+  devices            GpsDevice[]
+  lostReports        LostReport[]        @relation("LostReportReporter")
+  notifications      Notification[]
+  partners           Partner[]           @relation("PartnerOwner")
+  petMembers         PetMembership[]     @relation("PetMembershipUser")
+  refreshSessions    RefreshSession[]
+  verificationTokens VerificationToken[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Account {
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @db.Uuid
+  provider          AccountProvider
+  providerAccountId String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_sessions")
+}
+
+model VerificationToken {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      VerificationType
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+model Pet {
+  id                   String                @id @default(uuid()) @db.Uuid
+  name                 String
+  species              String
+  isPublicProfile      Boolean               @default(false)
+  breed                String?
+  gender               PetGender             @default(UNKNOWN)
+  dateOfBirth          DateTime?
+  color                String?
+  description          String?
+  avatarUrl            String?
+  status               PetStatus             @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  petCode              String                @unique
+  coverUrl             String?
+  weightGoal           Decimal?              @db.Decimal(5, 2)
+  existingTagId        String?
+  microchipNumber      Decimal?
+  weight               Decimal?              @db.Decimal(5, 2)
+  weightUnit           WeightUnit?           @default(KG)
+  healthReminderConfig HealthReminderConfig?
+  biometricCredentials BiometricCredential[]
+  geofences            Geofence[]
+  devices              GpsDevice[]
+  lostReports          LostReport[]
+  microchip            Microchip?
+  notifications        Notification[]
+  documents            PetDocument[]
+  identities           PetIdentity[]
+  locations            PetLocation[]
+  memberships          PetMembership[]
+  notes                PetNote[]
+  parentRelations      PetRelation[]         @relation("PetRelationChild")
+  childRelations       PetRelation[]         @relation("PetRelationParent")
+  vaccinations         PetVaccination[]
+
+  @@index([status])
+  @@index([name])
+  @@map("pets")
+}
+
+model PetNote {
+  id         String      @id @default(uuid()) @db.Uuid
+  petId      String      @db.Uuid
+  type       PetNoteType @default(GENERAL)
+  title      String?
+  content    String
+  isPinned   Boolean     @default(false)
+  occurredAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  pet        Pet         @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([petId, createdAt])
+  @@index([petId, type])
+  @@map("pet_notes")
+}
+
+model PetVaccination {
+  id             String            @id @default(uuid()) @db.Uuid
+  petId          String            @db.Uuid
+  vaccineName    String
+  status         VaccinationStatus @default(SCHEDULED)
+  administeredAt DateTime?
+  nextDueAt      DateTime?
+  veterinarian   String?
+  clinic         String?
+  batchNumber    String?
+  manufacturer   String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  pet            Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([petId, status])
+  @@index([nextDueAt])
+  @@map("pet_vaccinations")
+}
+
+model HealthReminderConfig {
+  id               String            @id @default(uuid()) @db.Uuid
+  petId            String            @unique @db.Uuid
+  enabled          Boolean           @default(true)
+  remindBeforeDays Int               @default(7)
+  channels         ReminderChannel[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  timezone         String            @default("Asia/Ho_Chi_Minh")
+  pet              Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+}
+
+model PetRelation {
+  id        String          @id @default(uuid()) @db.Uuid
+  parentId  String          @db.Uuid
+  childId   String          @db.Uuid
+  relation  PetRelationType @default(PARENT)
+  notes     String?
+  createdAt DateTime        @default(now())
+  child     Pet             @relation("PetRelationChild", fields: [childId], references: [id], onDelete: Cascade)
+  parent    Pet             @relation("PetRelationParent", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
+  @@map("pet_relations")
+}
+
+model PetMembership {
+  id        String           @id @default(uuid()) @db.Uuid
+  petId     String           @db.Uuid
+  userId    String           @db.Uuid
+  role      MembershipRole
+  status    MembershipStatus @default(ACTIVE)
+  invitedAt DateTime?
+  joinedAt  DateTime?
+  revokedAt DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  pet       Pet              @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user      User             @relation("PetMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([petId, userId])
+  @@index([userId])
+  @@index([petId])
+  @@map("pet_memberships")
+}
+
+model PetIdentity {
+  id             String   @id @default(uuid()) @db.Uuid
+  petId          String   @db.Uuid
+  identityNumber String   @unique
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  pet            Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@map("pet_identities")
+}
+
+model Microchip {
+  id          String    @id @default(uuid()) @db.Uuid
+  petId       String    @unique @db.Uuid
+  chipNumber  String    @unique
+  implantedAt DateTime?
+  implantedBy String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  pet         Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("microchips")
+}
+
+model GpsDevice {
+  id              String        @id @default(uuid()) @db.Uuid
+  deviceId        String        @unique
+  imei            String?       @unique
+  iccid           String?
+  serialNumber    String?       @unique
+  type            DeviceType    @default(GPS_TRACKER)
+  status          DeviceStatus  @default(ACTIVE)
+  firmwareVersion String?
+  hardwareVersion String?
+  batteryLevel    Int?
+  lastSeenAt      DateTime?
+  userId          String?       @db.Uuid
+  petId           String?       @db.Uuid
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  events          DeviceEvent[]
+  pet             Pet?          @relation(fields: [petId], references: [id])
+  user            User?         @relation(fields: [userId], references: [id])
+  locations       PetLocation[]
+
+  @@index([userId])
+  @@index([petId])
+  @@index([status])
+  @@index([lastSeenAt])
+  @@map("gps_devices")
+}
+
+model DeviceEvent {
+  id             String          @id @default(uuid()) @db.Uuid
+  deviceId       String          @db.Uuid
+  type           DeviceEventType
+  latitude       Decimal?        @db.Decimal(10, 7)
+  longitude      Decimal?        @db.Decimal(10, 7)
+  accuracy       Decimal?        @db.Decimal(10, 2)
+  batteryLevel   Int?
+  signalStrength Int?
+  payload        Json?
+  occurredAt     DateTime
+  createdAt      DateTime        @default(now())
+  device         GpsDevice       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, occurredAt])
+  @@index([type])
+  @@map("device_events")
+}
+
+model PetLocation {
+  id             String     @id @default(uuid()) @db.Uuid
+  petId          String     @db.Uuid
+  deviceId       String?    @db.Uuid
+  latitude       Decimal    @db.Decimal(10, 7)
+  longitude      Decimal    @db.Decimal(10, 7)
+  accuracy       Decimal?   @db.Decimal(10, 2)
+  altitude       Decimal?   @db.Decimal(10, 2)
+  speed          Decimal?   @db.Decimal(10, 2)
+  heading        Decimal?   @db.Decimal(10, 2)
+  batteryLevel   Int?
+  signalStrength Int?
+  recordedAt     DateTime
+  createdAt      DateTime   @default(now())
+  device         GpsDevice? @relation(fields: [deviceId], references: [id])
+  pet            Pet        @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, recordedAt])
+  @@index([deviceId, recordedAt])
+  @@map("pet_locations")
+}
+
+model Geofence {
+  id           String          @id @default(uuid()) @db.Uuid
+  petId        String          @db.Uuid
+  name         String
+  latitude     Decimal         @db.Decimal(10, 7)
+  longitude    Decimal         @db.Decimal(10, 7)
+  radiusMeters Int
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  events       GeofenceEvent[]
+  pet          Pet             @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@map("geofences")
+}
+
+model GeofenceEvent {
+  id         String            @id @default(uuid()) @db.Uuid
+  geofenceId String            @db.Uuid
+  type       GeofenceEventType
+  latitude   Decimal?          @db.Decimal(10, 7)
+  longitude  Decimal?          @db.Decimal(10, 7)
+  occurredAt DateTime
+  createdAt  DateTime          @default(now())
+  geofence   Geofence          @relation(fields: [geofenceId], references: [id], onDelete: Cascade)
+
+  @@index([geofenceId, occurredAt])
+  @@map("geofence_events")
+}
+
+model LostReport {
+  id             String           @id @default(uuid()) @db.Uuid
+  petId          String           @db.Uuid
+  reporterId     String           @db.Uuid
+  status         LostReportStatus @default(ACTIVE)
+  description    String?
+  lastLatitude   Decimal?         @db.Decimal(10, 7)
+  lastLongitude  Decimal?         @db.Decimal(10, 7)
+  lastSeenAt     DateTime?
+  reportedAt     DateTime         @default(now())
+  foundAt        DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  finderContacts FinderContact[]
+  pet            Pet              @relation(fields: [petId], references: [id], onDelete: Cascade)
+  reporter       User             @relation("LostReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("lost_reports")
+}
+
+model FinderContact {
+  id           String     @id @default(uuid()) @db.Uuid
+  lostReportId String     @db.Uuid
+  userId       String?    @db.Uuid
+  name         String?
+  phone        String?
+  email        String?
+  message      String?
+  createdAt    DateTime   @default(now())
+  lostReport   LostReport @relation(fields: [lostReportId], references: [id], onDelete: Cascade)
+  user         User?      @relation(fields: [userId], references: [id])
+
+  @@index([lostReportId])
+  @@index([userId])
+  @@map("finder_contacts")
+}
+
+model PetDocument {
+  id          String       @id @default(uuid()) @db.Uuid
+  petId       String       @db.Uuid
+  type        DocumentType
+  title       String
+  description String?
+  fileUrl     String
+  fileName    String?
+  mimeType    String?
+  fileSize    Int?
+  issuedAt    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  pet         Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([type])
+  @@map("pet_documents")
+}
+
+model BiometricCredential {
+  id        String   @id @default(uuid()) @db.Uuid
+  petId     String   @db.Uuid
+  type      String
+  valueHash String
+  createdAt DateTime @default(now())
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@map("biometric_credentials")
+}
+
+model Partner {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String?  @db.Uuid
+  name        String
+  type        String?
+  phone       String?
+  email       String?
+  address     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User?    @relation("PartnerOwner", fields: [ownerId], references: [id])
+
+  @@index([ownerId])
+  @@index([isActive])
+  @@map("partners")
+}
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  petId     String?             @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  channel   NotificationChannel @default(IN_APP)
+  isRead    Boolean             @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime            @default(now())
+  pet       Pet?                @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+  @@index([petId])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  actorId   String?     @db.Uuid
+  action    AuditAction
+  entity    String
+  entityId  String?
+  oldData   Json?
+  newData   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+  actor     User?       @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AccountProvider {
+  EMAIL
+  GOOGLE
+}
+
+enum PetStatus {
+  ACTIVE
+  LOST
+  FOUND
+  DECEASED
+  ARCHIVED
+}
+
+enum PetGender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum MembershipRole {
+  OWNER
+  CO_OWNER
+  FAMILY
+  CARETAKER
+  VIEWER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  LOST
+  BLOCKED
+  DECOMMISSIONED
+}
+
+enum DeviceType {
+  GPS_TRACKER
+  SMART_TAG
+  COLLAR
+}
+
+enum DeviceEventType {
+  BOOT
+  SHUTDOWN
+  LOCATION
+  BATTERY
+  MOTION
+  GEOFENCE_ENTER
+  GEOFENCE_EXIT
+  SOS
+  NETWORK_CONNECTED
+  NETWORK_DISCONNECTED
+  HEARTBEAT
+  ERROR
+}
+
+enum GeofenceEventType {
+  ENTER
+  EXIT
+}
+
+enum LostReportStatus {
+  ACTIVE
+  FOUND
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  SYSTEM
+  PET
+  DEVICE
+  LOST_PET
+  GEOFENCE
+  SECURITY
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+enum DocumentType {
+  VACCINATION
+  MEDICAL_RECORD
+  PEDIGREE
+  OWNERSHIP
+  IDENTIFICATION
+  OTHER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  VERIFY
+  REVOKE
+  SUSPEND
+  RESTORE
+}
+
+enum VerificationType {
+  EMAIL
+  PHONE
+  PASSWORD_RESET
+}
+
+enum PetNoteType {
+  GENERAL
+  HEALTH
+  FOOD
+  BEHAVIOR
+  MEDICATION
+  OTHER
+}
+
+enum VaccinationStatus {
+  SCHEDULED
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum PetRelationType {
+  PARENT
+}
+
+enum ReminderChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum WeightUnit {
+  LBS
+  KG
+}
