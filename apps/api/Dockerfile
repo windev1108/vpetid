@@ -30,9 +30,38 @@ COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
 
+# Generate Prisma Client
 RUN pnpm prisma generate
 
+# Build NestJS
 RUN pnpm build
+
+
+# ============================================
+# Production dependencies
+# ============================================
+FROM base AS production
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json apps/api/package.json
+
+# Built API
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+
+# Prisma schema / migrations
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+
+# Deploy production dependencies
+RUN pnpm deploy --legacy --filter api --prod /prod
+
+
+# ============================================
+# IMPORTANT:
+# Copy generated Prisma Client
+# ============================================
+COPY --from=builder /app/apps/api/node_modules/.prisma /prod/node_modules/.prisma
 
 
 # ============================================
@@ -46,20 +75,7 @@ ENV NODE_ENV=production
 
 RUN apk add --no-cache dumb-init
 
-# Built application
-COPY --from=builder /app/apps/api/dist ./dist
-
-# API node_modules
-COPY --from=builder /app/apps/api/node_modules ./node_modules
-
-# Prisma generated client
-COPY --from=builder /app/apps/api/node_modules/.prisma ./node_modules/.prisma
-
-# Prisma
-COPY --from=builder /app/apps/api/prisma ./prisma
-
-# API package.json
-COPY --from=builder /app/apps/api/package.json ./package.json
+COPY --from=production /prod ./
 
 EXPOSE 3000
 
