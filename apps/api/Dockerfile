@@ -30,7 +30,7 @@ COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
 
-# Generate Prisma Client
+# Generate Prisma Client for build
 RUN pnpm prisma generate
 
 # Build NestJS
@@ -50,18 +50,19 @@ COPY apps/api/package.json apps/api/package.json
 # Built API
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
-# Prisma schema / migrations
+# Prisma schema + migrations
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Deploy production dependencies
+# Install production dependencies into /prod
 RUN pnpm deploy --legacy --filter api --prod /prod
 
 
 # ============================================
-# IMPORTANT:
-# Copy generated Prisma Client
+# Generate Prisma Client inside production tree
 # ============================================
-COPY --from=builder /app/apps/api/node_modules/.prisma /prod/node_modules/.prisma
+WORKDIR /prod
+
+RUN pnpm prisma generate
 
 
 # ============================================
