@@ -62,6 +62,8 @@ RUN pnpm deploy --legacy --filter api --prod /prod
 # ============================================
 WORKDIR /prod
 
+RUN pnpm rebuild argon2
+
 RUN pnpm prisma generate
 
 
