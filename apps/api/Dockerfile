@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS base
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
 
@@ -50,12 +50,12 @@ COPY apps/api/package.json apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Create production dependency tree
+# Production dependency tree
 RUN pnpm deploy --legacy --filter api --prod /prod
 
 
 # ============================================
-# Generate Prisma Client in production tree
+# Generate Prisma Client
 # ============================================
 WORKDIR /prod
 
@@ -65,7 +65,7 @@ RUN pnpm prisma generate
 # ============================================
 # Runtime
 # ============================================
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
