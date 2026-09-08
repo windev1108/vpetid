@@ -47,24 +47,35 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json apps/api/package.json
 
-# Built API
+# API build
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
-# Prisma schema + migrations
+# Prisma schema
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Install production dependencies into /prod
+# Production dependency tree
 RUN pnpm deploy --legacy --filter api --prod /prod
 
 
 # ============================================
-# Generate Prisma Client inside production tree
+# Prepare production dependencies
 # ============================================
 WORKDIR /prod
 
+# Native build tools required by argon2
+RUN apk add --no-cache --virtual .build-deps \
+    python3 \
+    make \
+    g++
+
+# Rebuild argon2 against this exact Alpine + Node runtime
 RUN pnpm rebuild argon2
 
-RUN pnpm prisma generate
+# Prisma CLI + generated client
+RUN pnpm prisma generate --schema=/app/apps/api/prisma/schema.prisma
+
+# Remove build tools after native modules are compiled
+RUN apk del .build-deps
 
 
 # ============================================
