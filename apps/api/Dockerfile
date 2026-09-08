@@ -50,16 +50,13 @@ COPY apps/api/package.json apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Production dependency tree
 RUN pnpm deploy --legacy --filter api --prod /prod
 
-
-# ============================================
-# Generate Prisma Client
-# ============================================
 WORKDIR /prod
 
-RUN pnpm prisma generate
+RUN mkdir -p /prod/node_modules/.prisma
+
+RUN pnpm prisma generate --schema=/app/prisma/schema.prisma
 
 
 # ============================================
