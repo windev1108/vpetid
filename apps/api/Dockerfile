@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20-bookworm-slim AS base
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
 
-# Generate Prisma Client for build
+# Generate Prisma Client
 RUN pnpm prisma generate
 
 # Build NestJS
@@ -47,47 +47,33 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json apps/api/package.json
 
-# API build
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-
-# Prisma schema
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Production dependency tree
+# Create production dependency tree
 RUN pnpm deploy --legacy --filter api --prod /prod
 
 
 # ============================================
-# Prepare production dependencies
+# Generate Prisma Client in production tree
 # ============================================
 WORKDIR /prod
 
-# Native build tools required by argon2
-RUN apk add --no-cache --virtual .build-deps \
-    python3 \
-    make \
-    g++
-
-# Rebuild argon2 against this exact Alpine + Node runtime
-RUN pnpm rebuild argon2
-
-# Prisma CLI + generated client
-RUN pnpm prisma generate --schema=/app/apps/api/prisma/schema.prisma
-
-# Remove build tools after native modules are compiled
-RUN apk del .build-deps
+RUN pnpm prisma generate
 
 
 # ============================================
 # Runtime
 # ============================================
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache dumb-init
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dumb-init \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=production /prod ./
 
